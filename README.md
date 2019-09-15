@@ -8,6 +8,10 @@ Sources:
 * https://wiki.archlinux.org/index.php/Dm-crypt/Encrypting_an_entire_system#LVM_on_LUKS
 * https://github.com/ejmg/an-idiots-guide-to-installing-arch-on-a-lenovo-carbon-x1-gen-6
 
+## Boot the Arch live USB
+
+https://wiki.archlinux.org/index.php/Installation_guide#Boot_the_live_environment
+
 ## Set the keyboard layout
 
 https://wiki.archlinux.org/index.php/Installation_guide#Set_the_keyboard_layout
