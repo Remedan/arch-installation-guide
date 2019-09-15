@@ -58,8 +58,8 @@ swapon /dev/mapper/system_group-root
 ## Install system base
 
 ```
-pacstrap /mnt base
-genfstab -p /mnt >> /mnt/etc/fstab
+pacstrap /mnt base base-devel
+genfstab -U /mnt >> /mnt/etc/fstab
 arch-chroot /mnt
 ```
 
@@ -76,7 +76,7 @@ arch-chroot /mnt
 
 `mkinitcpio -p linux`
 
-`pacman -S grub efibootmgr`
+`pacman -S grub efibootmgr os-prober`
 
 /etc/default/grub  
 `GRUB_PRELOAD_MODULES="... lvm"`  
