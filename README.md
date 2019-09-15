@@ -1,5 +1,8 @@
 # Arch Installation Guide
 
+I had two objectives during my last Arch install. Use LVM on LUKS and have working dual boot with Windows. Here are documented the basic steps to achieve that.
+
+Sources:
 * https://wiki.archlinux.org/index.php/Installation_guide
 * https://wiki.archlinux.org/index.php/GRUB#Installation_2
 * https://wiki.archlinux.org/index.php/Dm-crypt/Encrypting_an_entire_system#LVM_on_LUKS
@@ -15,7 +18,9 @@ https://wiki.archlinux.org/index.php/Installation_guide#Update_the_system_clock
 
 ## Partition the disk
 
-/dev/sda1 is efi  
+The laptop had Windows preinstalled. I shrunk the Windows partition and created 2 new ones. One for unencrypted /boot and one for the Linux system featuring LVM on LUKS.
+
+/dev/sda1 is a preexisting EFI partition  
 /dev/sda2 is unencrypted /boot  
 /dev/sda3 is LVM on LUKS
 
@@ -38,7 +43,6 @@ lvcreate -l 100%FREE system_group -n root
 ## Create filesystems
 
 ```
-mkfs.fat -F32 /dev/sda1
 mkfs.ext4 /dev/sda2
 mkfs.ext4 /dev/mapper/system_group-root`
 mkswap /dev/mapper/system_group-swap
@@ -71,18 +75,31 @@ arch-chroot /mnt
 
 ## Install a bootloader
 
-/etc/mkinitcpio.conf  
-`HOOKS=(base udev autodetect keyboard keymap modconf block encrypt lvm2 filesystems fsck)`
+Edit `/etc/mkinitcpio.conf` and change the following line:
+```
+HOOKS=(base udev autodetect keyboard keymap modconf block encrypt lvm2 filesystems fsck)
+```
 
-`mkinitcpio -p linux`
+Regenerate initramfs and install Grub:
 
-`pacman -S grub efibootmgr os-prober`
+```
+mkinitcpio -p linux
+pacman -S grub efibootmgr os-prober
+```
 
-/etc/default/grub  
-`GRUB_PRELOAD_MODULES="... lvm"`  
-`GRUB_CMDLINE_LINUX="cryptdevice=UUID=</dev/sda3 UUID>:system root=/dev/mapper/system_group-root"`
+Edit `/etc/default/grub` like this:  
+(Find out the UUID of /dev/sda3 via `lsblk  -f`.)
+
+```
+GRUB_PRELOAD_MODULES="... lvm"
+GRUB_CMDLINE_LINUX="cryptdevice=UUID=</dev/sda3 UUID>:system root=/dev/mapper/system_group-root"
+```
+
+Install grub:
 
 ```
 grub-install --target=x86_64-efi --efi-directory=/efi --bootloader-id=GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
 ```
+
+Reboot and we're done. :)
