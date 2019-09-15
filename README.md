@@ -1,6 +1,6 @@
 # Arch Installation Guide
 
-I had two objectives during my last Arch install. Use LVM on LUKS and have working dual boot with Windows. Here are documented the basic steps to achieve that.
+I had two objectives during my last Arch install. Use LVM on LUKS for encryption and have working dual boot with Windows. Here are documented the basic steps to achieve that.
 
 Sources:
 * https://wiki.archlinux.org/index.php/Installation_guide
