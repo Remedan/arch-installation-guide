@@ -106,4 +106,4 @@ grub-install --target=x86_64-efi --efi-directory=/efi --bootloader-id=GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
 ```
 
-Reboot and we're done. :)
+This should be enough to have a basic Arch install that we can boot into. Next steps are to setup users, install a desktop environemnt and so on, depending on your preferences.
