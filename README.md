@@ -106,4 +106,6 @@ grub-install --target=x86_64-efi --efi-directory=/efi --bootloader-id=GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
 ```
 
-This should be enough to have a basic Arch install that we can boot into. Next steps are to setup users, install a desktop environemnt and so on, depending on your preferences.
+## Reboot
+
+First exit the chroot and then reboot. If everything went well we should see Grub with the options to boot into Arch or the existing Windows install. The Arch install still needs a lot of setup, eg. users, desktop environment, network, etc.
