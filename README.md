@@ -109,3 +109,9 @@ grub-mkconfig -o /boot/grub/grub.cfg
 ## Reboot
 
 First exit the chroot and then reboot. If everything went well we should see Grub with the options to boot into Arch or the existing Windows install. The Arch install still needs a lot of setup, eg. users, desktop environment, network, etc.
+
+## Backlight
+
+https://wiki.archlinux.org/index.php/Backlight#ACPI
+
+I had to add udev rules so that users that are in the video group can change brightness level.
