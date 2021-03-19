@@ -1,117 +1,135 @@
 # Arch Installation Guide
 
-I had two objectives during my last Arch install. Use LVM on LUKS for encryption and have working dual boot with Windows. Here are documented the basic steps to achieve that.
+I noted all the steps during my last Arch installation. They are sufficient for a bootable system.
 
-Sources:
-* https://wiki.archlinux.org/index.php/Installation_guide
-* https://wiki.archlinux.org/index.php/GRUB#Installation_2
-* https://wiki.archlinux.org/index.php/Dm-crypt/Encrypting_an_entire_system#LVM_on_LUKS
-* https://github.com/ejmg/an-idiots-guide-to-installing-arch-on-a-lenovo-carbon-x1-gen-6
+(There is also a different [guide with LVM on LUKS](lvm-on-luks.md).)
 
-## Boot the Arch live USB
+## Verify the boot mode
 
-https://wiki.archlinux.org/index.php/Installation_guide#Boot_the_live_environment
+I want to boot in EFI mode. Let's verify.
 
-## Set the keyboard layout
-
-https://wiki.archlinux.org/index.php/Installation_guide#Set_the_keyboard_layout
+```
+ls /sys/firmware/efi/efivars
+```
 
 ## Update the system clock
 
-https://wiki.archlinux.org/index.php/Installation_guide#Update_the_system_clock
-
-## Partition the disk
-
-The laptop had Windows preinstalled. I shrunk the Windows partition and created 2 new ones. One for unencrypted /boot and one for the Linux system featuring LVM on LUKS.
-
-/dev/sda1 is a preexisting EFI partition  
-/dev/sda2 is unencrypted /boot  
-/dev/sda3 is LVM on LUKS
-
-## Create an encrypted container
-
 ```
-cryptsetup --type luks2 luksFormat /dev/sda3
-cryptsetup --type luks2 open /dev/sda3 system
+timedatectl set-ntp true
 ```
 
-## Set LVM up
+## Partition the disks
+
+Partition with `cfdisk /dev/sda`, use GPT and the following scheme.
+
+| mount | fs    | size    |
+|-------| ------|---------|
+| /efi  | FAT32 | 512 MiB |
+| /boot | ext2  | 512 MiB |
+| swap  | swap  |         |
+| /     | ext4  |         |
+
+## Format the partitions
 
 ```
-pvcreate /dev/mapper/system
-vgcreate system_group /dev/mapper/system
-lvcreate -L 8G system_group -n swap
-lvcreate -l 100%FREE system_group -n root
+mkfs.fat -F32 /dev/sda1
+mkfs.ext2 /dev/sda2
+mkswap /dev/sda3
+mkfs.ext4 /dev/sda4
 ```
 
-## Create filesystems
+## Mount the file systems
 
 ```
-mkfs.ext4 /dev/sda2
-mkfs.ext4 /dev/mapper/system_group-root`
-mkswap /dev/mapper/system_group-swap
-```
-
-## Mount the filesystems
-
-```
-mount /dev/mapper/system_group-root /mnt
-mkdir /mnt/efi
+swapon /dev/sda3
+mount /dev/sda4 /mnt
+mkdir /mnt/{efi,boot}
 mount /dev/sda1 /mnt/efi
-mkdir /mnt/boot
 mount /dev/sda2 /mnt/boot
-swapon /dev/mapper/system_group-root
 ```
 
-## Install system base
+## Install essential packages
 
 ```
-pacstrap /mnt base base-devel
+pacstrap /mnt base linux linux-firmware
+```
+
+## Fstab
+
+```
 genfstab -U /mnt >> /mnt/etc/fstab
+```
+
+## Chroot
+
+```
 arch-chroot /mnt
 ```
 
-## Set Time zone, Localization, and Network
+## Time zone
 
-* https://wiki.archlinux.org/index.php/Installation_guide#Time_zone
-* https://wiki.archlinux.org/index.php/Installation_guide#Localization
-* https://wiki.archlinux.org/index.php/Installation_guide#Network_configuration
-
-## Install a bootloader
-
-Edit `/etc/mkinitcpio.conf` and change the following line:
-```
-HOOKS=(base udev autodetect keyboard keymap modconf block encrypt lvm2 filesystems fsck)
-```
-
-Regenerate initramfs and install Grub:
+Set the time zone to `Europe/Prague`.
 
 ```
-mkinitcpio -p linux
+ln -sf /usr/share/zoneinfo/Europe/Prague /etc/localtime
+hwclock --systohc
+```
+
+## Localization
+
+Install `vim` and uncomment `en_US.UTF-8 UTF-8` and `cs_CZ.UTF-8 UTF-8` in `/etc/locale.gen`
+
+```
+locale-gen
+echo 'LANG=cs_CZ.UTF-8' > /etc/locale.conf
+```
+
+## Hostname
+
+The hostname here is _arch_.
+
+```
+echo 'arch' > /etc/hostname
+cat >> /etc/hosts << EOF
+127.0.0.1	localhost
+::1		localhost
+127.0.0.1	arch.localdomain	arch
+EOF
+```
+
+## Initramfs
+
+```
+mkinitcpio -P
+```
+
+## Root password
+
+```
+passwd
+```
+
+## Boot loader
+
+```
 pacman -S grub efibootmgr os-prober
-```
-
-Edit `/etc/default/grub` like this:  
-(Find out the UUID of /dev/sda3 via `lsblk  -f`.)
-
-```
-GRUB_PRELOAD_MODULES="... lvm"
-GRUB_CMDLINE_LINUX="cryptdevice=UUID=</dev/sda3 UUID>:system root=/dev/mapper/system_group-root"
-```
-
-Install grub:
-
-```
 grub-install --target=x86_64-efi --efi-directory=/efi --bootloader-id=GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
 ```
 
+## DHCP
+
+I need to have a DHCP client available after reboot.
+
+```
+pacman -S dhcpcd
+```
+
 ## Reboot
 
-First exit the chroot and then reboot. If everything went well we should see Grub with the options to boot into Arch or the existing Windows install. The Arch install still needs a lot of setup, eg. users, desktop environment, network, etc.
+First exit the chroot environment then reboot (and remove the installation medium).
 
-## Backlight
-
-https://wiki.archlinux.org/index.php/Backlight#ACPI
-
-I had to add udev rules so that users that are in the video group can change brightness level.
+```
+exit
+reboot
+```
